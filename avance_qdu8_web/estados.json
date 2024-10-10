@@ -69,7 +69,7 @@
         "estado": "En Proceso"
     },
     "DP024": {
-        "estado": "En Proceso"
+        "estado": "No Empezado"
     },
     "DP025": {
         "estado": "Completado"
@@ -81,10 +81,10 @@
         "estado": "No Empezado"
     },
     "DP028": {
-        "estado": "No Empezado"
+        "estado": "En Proceso"
     },
     "DP029": {
-        "estado": "En Proceso"
+        "estado": "Completado"
     },
     "DP030": {
         "estado": "En Proceso"
