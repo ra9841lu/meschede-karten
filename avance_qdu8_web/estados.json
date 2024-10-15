@@ -1,91 +1,41 @@
 {
-    "DP001": {
-        "estado": "Completado"
-    },
-    "DP002": {
-        "estado": "Completado"
-    },
-    "DP003": {
-        "estado": "Completado"
-    },
-    "DP004": {
-        "estado": "Completado"
-    },
-    "DP005": {
-        "estado": "Completado"
-    },
-    "DP006": {
-        "estado": "Completado"
-    },
-    "DP007": {
-        "estado": "Completado"
-    },
-    "DP008": {
-        "estado": "Completado"
-    },
-    "DP009": {
-        "estado": "Completado"
-    },
-    "DP010": {
-        "estado": "Completado"
-    },
-    "DP011": {
-        "estado": "Completado"
-    },
-    "DP012": {
-        "estado": "Completado"
-    },
-    "DP013": {
-        "estado": "Completado"
-    },
-    "DP014": {
-        "estado": "Completado"
-    },
-    "DP015": {
-        "estado": "Completado"
-    },
-    "DP016": {
-        "estado": "Completado"
-    },
-    "DP017": {
-        "estado": "Completado"
-    },
-    "DP018": {
-        "estado": "Completado"
-    },
-    "DP019": {
-        "estado": "Completado"
-    },
-    "DP020": {
-        "estado": "En Proceso"
-    },
-    "DP021": {
-        "estado": "Completado"
-    },
-    "DP022": {
-        "estado": "En Proceso"
-    },
+    "DP001": {"estado": "Completado"},
+    "DP002": {"estado": "Completado"},
+    "DP003": {"estado": "Completado"},
+    "DP004": {"estado": "Completado"},
+    "DP005": {"estado": "Completado"},
+    "DP006": {"estado": "Completado"},
+    "DP007": {"estado": "Completado"},
+    "DP008": {"estado": "Completado"},
+    "DP009": {"estado": "Completado"},
+    "DP010": {"estado": "Completado"},
+    "DP011": {"estado": "Completado"},
+    "DP012": {"estado": "Completado"},
+    "DP013": {"estado": "Completado"},
+    "DP014": {"estado": "Completado"},
+    "DP015": {"estado": "Completado"},
+    "DP016": {"estado": "Completado"},
+    "DP017": {"estado": "Completado"},
+    "DP018": {"estado": "Completado"},
+    "DP019": {"estado": "Completado"},
+    "DP020": {"estado": "Completado"},
+    "DP021": {"estado": "Completado"},
+    "DP022": {"estado": "Completado"},
     "DP023": {
         "estado": "En Proceso"
     },
     "DP024": {
-        "estado": "No Empezado"
+        "estado": "En Proceso"
     },
-    "DP025": {
-        "estado": "Completado"
-    },
-    "DP026": {
-        "estado": "Completado"
-    },
+    "DP025": {"estado": "Completado"},
+    "DP026": {"estado": "Completado"},
     "DP027": {
-        "estado": "No Empezado"
+        "estado": "En Proceso"
     },
     "DP028": {
         "estado": "En Proceso"
     },
-    "DP029": {
-        "estado": "Completado"
-    },
+    "DP029": {"estado": "Completado"},
     "DP030": {
         "estado": "En Proceso"
     },
@@ -95,10 +45,6 @@
     "DP032": {
         "estado": "No Empezado"
     },
-    "DP033": {
-        "estado": "En Proceso"
-    },
-    "DP034": {
-        "estado": "Completado"
-    }
+    "DP033": {"estado": "Completado"},
+    "DP034": {"estado": "Completado"}
 }
