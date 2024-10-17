@@ -24,9 +24,7 @@
     "DP023": {
         "estado": "En Proceso"
     },
-    "DP024": {
-        "estado": "En Proceso"
-    },
+    "DP024": {"estado": "Completado"},
     "DP025": {"estado": "Completado"},
     "DP026": {"estado": "Completado"},
     "DP027": {
