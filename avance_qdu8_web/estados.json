@@ -1,5 +1,5 @@
 {
-    "DP001": {"estado": "Completado"},
+    "DP001": {"estado": "En Proceso"},
     "DP002": {"estado": "Completado"},
     "DP003": {"estado": "Completado"},
     "DP004": {"estado": "Completado"},
@@ -35,12 +35,8 @@
     },
     "DP029": {"estado": "Completado"},
     "DP030": {"estado": "Completado"},
-    "DP031": {
-        "estado": "En Proceso"
-    },
-    "DP032": {
-        "estado": "En Proceso"
-    },
+    "DP031": {"estado": "Completado"},
+    "DP032": {"estado": "Completado"},
     "DP033": {"estado": "Completado"},
     "DP034": {"estado": "Completado"}
 }
