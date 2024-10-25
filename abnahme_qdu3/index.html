@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapa con OpenLayers</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/ol3/3.20.1/ol.css" type="text/css">
+    <style>
+        #map {
+            width: 100%;
+            height: 800px;
+        }
+
+        #legend {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background: white;
+            border: 1px solid #ccc;
+            padding: 10px;
+            z-index: 999; /* Asegura que esté por encima del mapa */
+            font-family: Arial, sans-serif;
+        }
+        .legend-item {
+            margin: 5px 0;
+        }
+        .color-box {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            margin-right: 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="map"></div>
+
+    <div id="legend">
+        <div class="legend-item">
+            <span class="color-box" style="background: rgba(229, 190, 0, 0.5);"></span>
+            Abgenommen
+        </div>
+        <div class="legend-item">
+            <span class="color-box" style="background: rgba(0, 0, 0, 0.3);"></span>
+            Noch nicht abgenommen
+        </div>
+        <div class="legend-item">
+            <span class="color-box" style="background: rgba(68, 226, 68, 0.678);"></span>
+            Geplant
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ol3/3.20.1/ol.js"></script>
+    <script>
+        // Inicialización del mapa
+        var map = new ol.Map({
+            target: 'map',
+            layers: [
+                new ol.layer.Tile({
+                    source: new ol.source.OSM()
+                })
+            ],
+            view: new ol.View({
+                center: ol.proj.fromLonLat([8.284, 51.338]), // Coordenadas de inicialización
+                zoom: 15
+            })
+        });
+
+        // Cargar el archivo JSON con los estados
+        let estados;
+        fetch('estados.json')
+            .then(response => response.json())
+            .then(data => {
+                estados = data; // Guarda los estados en la variable
+                cargarGeoJSON();
+            })
+            .catch(err => console.error('Error cargando el JSON de estados:', err));
+
+        // Función para cargar el archivo GeoJSON
+        function cargarGeoJSON() {
+            fetch('poligonos.geojson')
+                .then(response => response.json())
+                .then(data => {
+                    var vectorSource = new ol.source.Vector({
+                        features: new ol.format.GeoJSON().readFeatures(data, {
+                            featureProjection: 'EPSG:3857' // Proyección del mapa
+                        })
+                    });
+
+                    var vectorLayer = new ol.layer.Vector({
+                        source: vectorSource,
+                        style: function (feature) {
+                            return getFeatureStyle(feature);
+                        }
+                    });
+
+                    // Añadir la capa vectorial al mapa
+                    map.addLayer(vectorLayer);
+
+                    // Función para crear el efecto de parpadeo en los polígonos en proceso
+                    function animateGreenPolygons() {
+                        var maxOpacity = 0.5;  // Máxima opacidad
+                        var minOpacity = 0.1;  // Mínima opacidad para el parpadeo
+                        var opacity = maxOpacity;
+                        var decreasing = true;
+
+                        setInterval(function () {
+                            vectorLayer.getSource().getFeatures().forEach(function (feature) {
+                                var state = feature.get('INFO_33_Label');
+                                var estado = estados[state] ? estados[state].estado : 'Entregado';
+
+                                if (estado === 'Planeado') {
+                                    if (decreasing) {
+                                        opacity -= 0.01;
+                                        if (opacity <= minOpacity) {
+                                            decreasing = false;
+                                        }
+                                    } else {
+                                        opacity += 0.01;
+                                        if (opacity >= maxOpacity) {
+                                            decreasing = true;
+                                        }
+                                    }
+
+                                    var newStyle = getFeatureStyle(feature, opacity); // Obtener nuevo estilo con opacidad
+                                    feature.setStyle(newStyle);
+                                }
+                            });
+                        }, 150); // Intervalo de 50 ms para hacer el parpadeo más suave
+                    }
+
+                    // Iniciar la animación de parpadeo
+                    animateGreenPolygons();
+
+                    // Escuchar cambios de zoom
+                    map.getView().on('change:resolution', function() {
+                        vectorLayer.getSource().getFeatures().forEach(function (feature) {
+                            feature.setStyle(getFeatureStyle(feature)); // Actualizar el estilo al cambiar de zoom
+                        });
+                    });
+                })
+                .catch(err => console.error('Error cargando el GeoJSON:', err));
+        }
+
+        // Función para obtener el estilo del polígono
+        function getFeatureStyle(feature, opacity) {
+            var state = feature.get('INFO_33_Label');
+            var estado = estados[state] ? estados[state].estado : 'Entregado'; // Obtener el estado
+            var color;
+
+            // Asignar colores según el estado
+            if (estado === 'Entregado') {
+                color = 'rgba(229, 190, 0, 0.5)'; // amarillo 
+            } else if (estado === 'No entregado') {
+                color = 'rgba(0, 0, 0, 0.3)'; // plomo
+            } else if (estado === 'Planeado') {
+                color = `rgba(0, 255, 0, ${opacity !== undefined ? opacity : 0.5})`; // Verde con opacidad
+            }
+
+            // Obtener el tamaño de la fuente según el nivel de zoom (invertido)
+            var zoom = map.getView().getZoom();
+            var fontSize = Math.max(10, zoom/2 + 5); // Aumenta el tamaño de la fuente al acercarse
+
+            return new ol.style.Style({
+                stroke: new ol.style.Stroke({
+                    color: '#000',
+                    width: 2
+                }),
+                fill: new ol.style.Fill({
+                    color: color
+                }),
+                text: new ol.style.Text({
+                    text: feature.get('INFO_33_Label'),
+                    font: `bold ${fontSize}px Arial`, // Letras en negrita con tamaño dinámico
+                    fill: new ol.style.Fill({
+                        color: '#000'
+                    })
+                })
+            });
+        }
+    </script>
+
+</body>
+</html>
