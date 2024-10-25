@@ -21,14 +21,11 @@
     "DP020": {"estado": "Completado"},
     "DP021": {"estado": "Completado"},
     "DP022": {"estado": "Completado"},
-    "DP023": {
-        "estado": "En Proceso"
-    },
+    "DP023": {"estado": "Completado"},
     "DP024": {"estado": "Completado"},
     "DP025": {"estado": "Completado"},
     "DP026": {"estado": "Completado"},
-    "DP027": {
-        "estado": "En Proceso"
+    "DP027": {"estado": "Completado"
     },
     "DP028": {
         "estado": "En Proceso"
