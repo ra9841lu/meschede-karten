@@ -39,15 +39,23 @@
     <div id="legend">
         <div class="legend-item">
             <span class="color-box" style="background: rgba(0, 0, 255, 0.5);"></span>
-            Gemacht
+            Asphaltiert
+        </div>
+        <div class="legend-item">
+            <span class="color-box" style="background: rgba(68, 226, 68, 0.5);"></span>
+            Tiefbau gemacht
         </div>
         <div class="legend-item">
             <span class="color-box" style="background: rgba(255, 0, 0, 0.5);"></span>
-            Nicht gestartet
+            Im Gange
         </div>
         <div class="legend-item">
-            <span class="color-box" style="background: rgba(68, 226, 68, 0.678);"></span>
-            Im Gange
+            <span class="color-box" style="background: rgba(235, 231, 9, 0.5);"></span>
+            Nächste
+        </div>
+        <div class="legend-item">
+            <span class="color-box" style="background: rgba(179, 179, 179, 0.678);"></span>
+            Nicht gestartet
         </div>
     </div>
 
@@ -108,9 +116,9 @@
                         setInterval(function () {
                             vectorLayer.getSource().getFeatures().forEach(function (feature) {
                                 var state = feature.get('INFO_33_Label');
-                                var estado = estados[state] ? estados[state].estado : 'Completado';
+                                var estado = estados[state] ? estados[state].estado : '4';
 
-                                if (estado === 'En Proceso') {
+                                if (estado === '1'|| estado === '2') {
                                     if (decreasing) {
                                         opacity -= 0.01;
                                         if (opacity <= minOpacity) {
@@ -146,16 +154,20 @@
         // Función para obtener el estilo del polígono
         function getFeatureStyle(feature, opacity) {
             var state = feature.get('INFO_33_Label');
-            var estado = estados[state] ? estados[state].estado : 'Completado'; // Obtener el estado
+            var estado = estados[state] ? estados[state].estado : '4'; // Obtener el estado
             var color;
 
             // Asignar colores según el estado
-            if (estado === 'Completado') {
-                color = 'rgba(0, 0, 255, 0.5)'; // Azul
-            } else if (estado === 'No Empezado') {
-                color = 'rgba(255, 0, 0, 0.5)'; // Rojo
-            } else if (estado === 'En Proceso') {
-                color = `rgba(0, 255, 0, ${opacity !== undefined ? opacity : 0.5})`; // Verde con opacidad
+            if (estado === '4') {
+                color = 'rgba(0, 0, 255, 0.5)'; // Asfaltado - azul
+            } else if (estado === '0') {
+                color = 'rgba(179, 179, 179, 0.5)'; // no empezado - gris
+            } else if (estado === '1') {
+                color = `rgba(235, 231, 9, ${opacity !== undefined ? opacity : 0.5})`; // no empezado - gris
+            } else if (estado === '2') {
+                color = `rgba(255, 0, 0, ${opacity !== undefined ? opacity : 0.5})`; // en progreso - rojo
+            } else if (estado === '3') {
+                color = 'rgba(0, 255, 0, 0.5)'; // terminado tiefbau - verde
             }
 
             // Obtener el tamaño de la fuente según el nivel de zoom (invertido)
