@@ -42,12 +42,12 @@
             Abgenommen
         </div>
         <div class="legend-item">
-            <span class="color-box" style="background: rgba(0, 0, 0, 0.3);"></span>
-            Noch nicht abgenommen
+            <span class="color-box" style="background: rgba(68, 226, 68, 0.678);"></span>
+            Ausständig
         </div>
         <div class="legend-item">
-            <span class="color-box" style="background: rgba(68, 226, 68, 0.678);"></span>
-            Geplant
+            <span class="color-box" style="background: rgba(0, 0, 0, 0.3);"></span>
+            Noch nicht abgenommen
         </div>
     </div>
 
@@ -108,9 +108,9 @@
                         setInterval(function () {
                             vectorLayer.getSource().getFeatures().forEach(function (feature) {
                                 var state = feature.get('INFO_33_Label');
-                                var estado = estados[state] ? estados[state].estado : 'Entregado';
+                                var estado = estados[state] ? estados[state].estado : '2';
 
-                                if (estado === 'Planeado') {
+                                if (estado === '1') {
                                     if (decreasing) {
                                         opacity -= 0.01;
                                         if (opacity <= minOpacity) {
@@ -150,11 +150,11 @@
             var color;
 
             // Asignar colores según el estado
-            if (estado === 'Entregado') {
+            if (estado === '2') {
                 color = 'rgba(229, 190, 0, 0.5)'; // amarillo 
-            } else if (estado === 'No entregado') {
+            } else if (estado === '0') {
                 color = 'rgba(0, 0, 0, 0.3)'; // plomo
-            } else if (estado === 'Planeado') {
+            } else if (estado === '1') {
                 color = `rgba(0, 255, 0, ${opacity !== undefined ? opacity : 0.5})`; // Verde con opacidad
             }
 
