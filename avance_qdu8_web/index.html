@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mapa con OpenLayers</title>
+    <title>Abnahme QDU-003</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/ol3/3.20.1/ol.css" type="text/css">
     <style>
         #map {
@@ -38,24 +38,16 @@
 
     <div id="legend">
         <div class="legend-item">
-            <span class="color-box" style="background: rgba(0, 0, 255, 0.5);"></span>
-            Asphaltiert
+            <span class="color-box" style="background: rgba(229, 190, 0, 0.5);"></span>
+            Abgenommen
         </div>
         <div class="legend-item">
-            <span class="color-box" style="background: rgba(68, 226, 68, 0.5);"></span>
-            Tiefbau gemacht
+            <span class="color-box" style="background: rgba(68, 226, 68, 0.678);"></span>
+            Ausständig
         </div>
         <div class="legend-item">
-            <span class="color-box" style="background: rgba(255, 0, 0, 0.5);"></span>
-            Im Gange
-        </div>
-        <div class="legend-item">
-            <span class="color-box" style="background: rgba(235, 231, 9, 0.5);"></span>
-            Nächste
-        </div>
-        <div class="legend-item">
-            <span class="color-box" style="background: rgba(179, 179, 179, 0.678);"></span>
-            Nicht gestartet
+            <span class="color-box" style="background: rgba(0, 0, 0, 0.3);"></span>
+            Noch nicht abgenommen
         </div>
     </div>
 
@@ -70,7 +62,7 @@
                 })
             ],
             view: new ol.View({
-                center: ol.proj.fromLonLat([8.167, 51.3805]), // Coordenadas de inicialización
+                center: ol.proj.fromLonLat([8.284, 51.338]), // Coordenadas de inicialización
                 zoom: 15
             })
         });
@@ -116,9 +108,9 @@
                         setInterval(function () {
                             vectorLayer.getSource().getFeatures().forEach(function (feature) {
                                 var state = feature.get('INFO_33_Label');
-                                var estado = estados[state] ? estados[state].estado : '4';
+                                var estado = estados[state] ? estados[state].estado : '2';
 
-                                if (estado === '1'|| estado === '2') {
+                                if (estado === '1') {
                                     if (decreasing) {
                                         opacity -= 0.01;
                                         if (opacity <= minOpacity) {
@@ -154,20 +146,16 @@
         // Función para obtener el estilo del polígono
         function getFeatureStyle(feature, opacity) {
             var state = feature.get('INFO_33_Label');
-            var estado = estados[state] ? estados[state].estado : '4'; // Obtener el estado
+            var estado = estados[state] ? estados[state].estado : 'Entregado'; // Obtener el estado
             var color;
 
             // Asignar colores según el estado
-            if (estado === '4') {
-                color = 'rgba(0, 0, 255, 0.5)'; // Asfaltado - azul
+            if (estado === '2') {
+                color = 'rgba(229, 190, 0, 0.5)'; // amarillo 
             } else if (estado === '0') {
-                color = 'rgba(179, 179, 179, 0.5)'; // no empezado - gris
+                color = 'rgba(0, 0, 0, 0.3)'; // plomo
             } else if (estado === '1') {
-                color = `rgba(235, 231, 9, ${opacity !== undefined ? opacity : 0.5})`; // no empezado - gris
-            } else if (estado === '2') {
-                color = `rgba(255, 0, 0, ${opacity !== undefined ? opacity : 0.5})`; // en progreso - rojo
-            } else if (estado === '3') {
-                color = 'rgba(0, 255, 0, 0.5)'; // terminado tiefbau - verde
+                color = `rgba(0, 255, 0, ${opacity !== undefined ? opacity : 0.5})`; // Verde con opacidad
             }
 
             // Obtener el tamaño de la fuente según el nivel de zoom (invertido)
