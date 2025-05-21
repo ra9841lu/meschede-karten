@@ -1,1 +1,24 @@
-asdf
+{
+"type": "FeatureCollection",
+"name": "Genehmigungen Visbeck QDU-009 Straßen NRW",
+"features": [
+{ "type": "Feature", "properties": { "Name": "Asfalto_1" }, "geometry": { "type": "LineString", "coordinates": [ [ 8.1385251, 51.3328129 ], [ 8.1382273, 51.332751 ], [ 8.1379679, 51.332672 ], [ 8.1376922, 51.3325794 ], [ 8.1375495, 51.3325554 ] ] } },
+{ "type": "Feature", "properties": { "Name": "Asfalto_2" }, "geometry": { "type": "LineString", "coordinates": [ [ 8.130726, 51.3325017 ], [ 8.1303695, 51.3324343 ] ] } },
+{ "type": "Feature", "properties": { "Name": "Asfalto_3" }, "geometry": { "type": "LineString", "coordinates": [ [ 8.1326895, 51.3323926 ], [ 8.1321957, 51.33250 ], [ 8.132069, 51.3324733 ] ] } },
+{ "type": "Feature", "properties": { "Name": "ER_1" }, "geometry": { "type": "LineString", "coordinates": [ [ 8.1369314, 51.3324557 ], [ 8.1369458, 51.3323876 ] ] } },
+{ "type": "Feature", "properties": { "Name": "ER_2" }, "geometry": { "type": "LineString", "coordinates": [ [ 8.137521, 51.3325284 ], [ 8.1375591, 51.3324535 ] ] } },
+{ "type": "Feature", "properties": { "Name": "ER_3" }, "geometry": { "type": "LineString", "coordinates": [ [ 8.1334477, 51.332322 ], [ 8.1334452, 51.33225 ] ] } },
+{ "type": "Feature", "properties": { "Name": "ER_4" }, "geometry": { "type": "LineString", "coordinates": [ [ 8.1327106, 51.3324437 ], [ 8.1326874, 51.3323926 ] ] } },
+{ "type": "Feature", "properties": { "Name": "ER_5" }, "geometry": { "type": "LineString", "coordinates": [ [ 8.1289568, 51.3323293 ], [ 8.1289563, 51.3322634 ] ] } },
+{ "type": "Feature", "properties": { "Name": "ER_7" }, "geometry": { "type": "LineString", "coordinates": [ [ 8.1296085, 51.3323387 ], [ 8.1296187, 51.3322837 ] ] } },
+{ "type": "Feature", "properties": { "Name": "ER_8" }, "geometry": { "type": "LineString", "coordinates": [ [ 8.1275952, 51.3323296 ], [ 8.1276512, 51.3322909 ] ] } },
+{ "type": "Feature", "properties": { "Name": "Asphalt SQ_1" }, "geometry": { "type": "LineString", "coordinates": [ [ 8.1375498, 51.3325464 ], [ 8.1372379, 51.3324968 ] ] } },
+{ "type": "Feature", "properties": { "Name": "Asphalt SQ_2" }, "geometry": { "type": "LineString", "coordinates": [ [ 8.133678, 51.332307 ], [ 8.1335392, 51.3323082 ] ] } },
+{ "type": "Feature", "properties": { "Name": "Plaster_1" }, "geometry": { "type": "LineString", "coordinates": [ [ 8.1372152, 51.3324929 ], [ 8.1369388, 51.3324581 ], [ 8.1364497, 51.3324394 ], [ 8.1360271, 51.3324526 ], [ 8.135534, 51.3324753 ], [ 8.1351801, 51.3324456 ], [ 8.1344348, 51.3323652 ], [ 8.1336774, 51.3323065 ] ] } },
+{ "type": "Feature", "properties": { "Name": "Plaster_2" }, "geometry": { "type": "LineString", "coordinates": [ [ 8.1335227, 51.3323094 ], [ 8.1330397, 51.3323878 ], [ 8.1326589, 51.3324564 ] ] } },
+{ "type": "Feature", "properties": { "Name": "Plaster_3" }, "geometry": { "type": "LineString", "coordinates": [ [ 8.1316235, 51.3326599 ], [ 8.1313425, 51.3326094 ], [ 8.1310845, 51.3325613 ], [ 8.1307302, 51.332503 ] ] } },
+{ "type": "Feature", "properties": { "Name": "Erde_1" }, "geometry": { "type": "LineString", "coordinates": [ [ 8.1369458, 51.3323967 ], [ 8.1364869, 51.332374 ], [ 8.1359212, 51.3324011 ], [ 8.1355148, 51.3324045 ], [ 8.1353073, 51.3323865 ] ] } },
+{ "type": "Feature", "properties": { "Name": "Spülbohrung" }, "geometry": { "type": "LineString", "coordinates": [ [ 8.1326556, 51.3324579 ], [ 8.1319586, 51.3326332 ], [ 8.1316214, 51.3326612 ] ] } },
+{ "type": "Feature", "properties": { "Name": "Asphalt auf L840" }, "geometry": { "type": "LineString", "coordinates": [ [ 8.1303704, 51.3324307 ], [ 8.1299456, 51.3323726 ], [ 8.1295991, 51.3323401 ], [ 8.12909, 51.3323281 ], [ 8.1285046, 51.3323482 ], [ 8.1279932, 51.3324081 ], [ 8.1278046, 51.3323993 ], [ 8.1276452, 51.3323589 ], [ 8.1275904, 51.3323293 ] ] } }
+]
+}
