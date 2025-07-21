@@ -1,0 +1,1836 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Medidor de Distancias en Plano</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            overflow: hidden;
+            height: 100vh;
+        }
+        
+        .app-container {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Controles superiores fijos */
+        .controls-container {
+            background: #f8f9fa;
+            border-bottom: 2px solid #dee2e6;
+            z-index: 1001;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        /* Asegurar que los controles siempre estén visibles en móviles */
+        @media (max-width: 768px) {
+            .controls-container {
+                position: sticky;
+                top: 0;
+                z-index: 1002;
+            }
+        }
+        
+        .controls-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: #e9ecef;
+        }
+        
+        .controls-title {
+            font-weight: bold;
+            font-size: 16px;
+        }
+        
+        .toggle-controls-btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 5px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .controls-content {
+            padding: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+            transition: max-height 0.3s ease;
+        }
+        
+        .controls-container.collapsed .controls-content {
+            max-height: 0;
+            padding: 0 10px;
+            overflow: hidden;
+        }
+        
+        .control-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .control-item {
+            flex: 1;
+            min-width: 80px;
+        }
+        
+        .control-item label {
+            display: block;
+            font-size: 11px;
+            color: #666;
+            margin-bottom: 3px;
+            font-weight: bold;
+        }
+        
+        .control-item input,
+        .control-item select {
+            width: 100%;
+            padding: 6px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px !important;
+        }
+        
+        /* Contenedor del mapa */
+        .map-wrapper {
+            flex: 1;
+            position: relative;
+            min-height: 200px;
+        }
+        
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1000;
+            pointer-events: none;
+        }
+        
+        .crosshair-center {
+            width: 30px;
+            height: 30px;
+            border: 3px solid #ff0000;
+            border-radius: 50%;
+            position: relative;
+            background: rgba(255, 0, 0, 0.1);
+        }
+        
+        .crosshair-center::before,
+        .crosshair-center::after {
+            content: '';
+            position: absolute;
+            background-color: #ff0000;
+        }
+        
+        .crosshair-center::before {
+            width: 2px;
+            height: 40px;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+        }
+        
+        .crosshair-center::after {
+            width: 40px;
+            height: 2px;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+        }
+        
+        /* Punto central más visible */
+        .crosshair-center::before {
+            box-shadow: 0 0 3px rgba(0,0,0,0.5);
+        }
+        
+        .crosshair-center::after {
+            box-shadow: 0 0 3px rgba(0,0,0,0.5);
+        }
+        
+        .map-controls {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        .map-control-btn {
+            background: white;
+            border: 2px solid rgba(0,0,0,0.2);
+            border-radius: 4px;
+            padding: 8px;
+            cursor: pointer;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+        
+        .map-control-btn.active {
+            background: #007bff;
+            color: white;
+        }
+        
+        .edit-mode-btn {
+            background: #ff9800;
+            color: white;
+            font-size: 14px;
+            width: auto;
+            padding: 8px 12px;
+        }
+        
+        .edit-mode-btn.active {
+            background: #f44336;
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+        
+        /* Panel de datos inferior */
+        .data-container {
+            background: white;
+            border-top: 2px solid #dee2e6;
+            height: 40vh;
+            display: flex;
+            flex-direction: column;
+            transition: height 0.3s ease;
+            position: relative;
+            z-index: 1000;
+        }
+        
+        .data-container.collapsed {
+            height: 48px;
+        }
+        
+        /* Ajuste específico para móviles en orientación vertical */
+        @media (max-width: 768px) and (orientation: portrait) {
+            .app-container {
+                height: 100vh;
+                position: fixed;
+                width: 100%;
+            }
+            
+            .map-wrapper {
+                flex: 1;
+                min-height: 50vh;
+            }
+            
+            .data-container {
+                position: absolute;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                height: 40vh;
+                max-height: 50vh;
+            }
+            
+            .data-container.collapsed {
+                height: 48px;
+            }
+        }
+        
+        /* Ajuste para móviles en orientación horizontal */
+        @media (max-width: 768px) and (orientation: landscape) {
+            .app-container {
+                flex-direction: row;
+            }
+            
+            .left-panel {
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+            }
+            
+            .data-container {
+                width: 300px;
+                height: 100vh;
+                border-top: none;
+                border-left: 2px solid #dee2e6;
+            }
+        }
+        
+        .data-header {
+            display: flex;
+            align-items: center;
+            background: #f8f9fa;
+            padding: 10px;
+            cursor: pointer;
+            user-select: none;
+        }
+        
+        .data-toggle-icon {
+            margin-right: 10px;
+            transition: transform 0.3s;
+        }
+        
+        .data-container.collapsed .data-toggle-icon {
+            transform: rotate(-90deg);
+        }
+        
+        .panel-tabs {
+            display: flex;
+            background: #e9ecef;
+            overflow-x: auto;
+            scrollbar-width: thin;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        .data-container.collapsed .panel-tabs {
+            display: none;
+        }
+        
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border: none;
+            background: transparent;
+            font-weight: bold;
+            font-size: 13px;
+            white-space: nowrap;
+            flex-shrink: 0;
+            transition: all 0.3s;
+        }
+        
+        .tab.active {
+            background: white;
+            border-bottom: 3px solid #007bff;
+            color: #007bff;
+        }
+        
+        .panel-content {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            display: none;
+        }
+        
+        .panel-content.active {
+            display: block;
+        }
+        
+        .data-container.collapsed .panel-content {
+            display: none;
+        }
+        
+        /* Botones */
+        .btn {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 13px;
+            white-space: nowrap;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+        
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+        
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .btn-warning {
+            background: #ffc107;
+            color: #212529;
+        }
+        
+        .btn-sm {
+            padding: 4px 8px;
+            font-size: 11px;
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        /* Tablas */
+        .table-wrapper {
+            overflow-x: auto;
+            margin-bottom: 15px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            min-width: 500px;
+        }
+        
+        th, td {
+            padding: 8px 6px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+            white-space: nowrap;
+        }
+        
+        th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+            position: sticky;
+            top: 0;
+            z-index: 5;
+        }
+        
+        .editable {
+            cursor: pointer;
+            text-decoration: underline dotted;
+            color: #007bff;
+        }
+        
+        .editable:hover {
+            background: #f0f0f0;
+        }
+        
+        /* Etiquetas de distancia */
+        .distance-label {
+            background-color: white;
+            padding: 4px 8px;
+            border-radius: 5px;
+            border: 2px solid;
+            font-weight: bold;
+            font-size: 12px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        
+        /* Tabla matriz */
+        .matrix-wrapper {
+            overflow: auto;
+            max-height: 300px;
+        }
+        
+        .matrix-table {
+            border-collapse: separate;
+            border-spacing: 0;
+            min-width: 600px;
+        }
+        
+        .matrix-table th {
+            background: #343a40;
+            color: white;
+            text-align: center;
+            padding: 10px;
+            position: sticky;
+            top: 0;
+            z-index: 6;
+        }
+        
+        .matrix-table td {
+            text-align: center;
+            padding: 8px;
+            border: 1px solid #dee2e6;
+        }
+        
+        .matrix-table .row-header {
+            background: #f8f9fa;
+            font-weight: bold;
+            text-align: left;
+            position: sticky;
+            left: 0;
+            z-index: 3;
+        }
+        
+        .matrix-table tr:nth-child(even) {
+            background-color: rgba(0,0,0,0.02);
+        }
+        
+        .matrix-table .total-row {
+            background: #e9ecef;
+            font-weight: bold;
+        }
+        
+        .matrix-table .total-cell {
+            background: #343a40;
+            color: white;
+            font-weight: bold;
+        }
+        
+        .matrix-table .empty-cell {
+            color: #ccc;
+        }
+        
+        /* Resumen */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .summary-item {
+            text-align: center;
+            padding: 15px;
+            border-radius: 5px;
+            background: white;
+            border: 2px solid;
+        }
+        
+        .summary-item.tipo1 { border-color: #ff4444; }
+        .summary-item.tipo2 { border-color: #44ff44; }
+        .summary-item.tipo3 { border-color: #4444ff; }
+        .summary-item.tipo4 { border-color: #ff44ff; }
+        .summary-item.tipo5 { border-color: #ffaa44; }
+        
+        .summary-label {
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .summary-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            margin-top: 5px;
+        }
+        
+        .dp-section {
+            background: #f8f9fa;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+        }
+        
+        .dp-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        /* Colores de tipos */
+        .type-1 { color: #ff4444; }
+        .type-2 { color: #44ff44; }
+        .type-3 { color: #4444ff; }
+        .type-4 { color: #ff44ff; }
+        .type-5 { color: #ffaa44; }
+        
+        /* Responsive para escritorio */
+        @media (min-width: 768px) {
+            .app-container {
+                flex-direction: row;
+            }
+            
+            .left-panel {
+                display: flex;
+                flex-direction: column;
+                flex: 1;
+            }
+            
+            .controls-container {
+                position: relative;
+            }
+            
+            .map-wrapper {
+                flex: 1;
+            }
+            
+            .data-container {
+                width: 400px;
+                height: 100vh;
+                border-top: none;
+                border-left: 2px solid #dee2e6;
+            }
+            
+            .data-container.collapsed {
+                width: 48px;
+                height: 100vh;
+            }
+            
+            .data-header {
+                writing-mode: vertical-rl;
+                text-orientation: mixed;
+                height: 100%;
+                width: 48px;
+                padding: 10px 5px;
+            }
+            
+            .data-container:not(.collapsed) .data-header {
+                writing-mode: initial;
+                width: 100%;
+                height: auto;
+            }
+            
+            .data-toggle-icon {
+                transform: rotate(0deg);
+            }
+            
+            .data-container.collapsed .data-toggle-icon {
+                transform: rotate(180deg);
+            }
+        }
+        
+        /* Ajustes para teclado virtual en móviles */
+        @media (max-height: 500px) {
+            .controls-container {
+                max-height: 40vh;
+            }
+            
+            .data-container {
+                height: 30vh;
+            }
+        }
+        
+        .custom-marker {
+            background-color: #ff6b6b;
+            border: 2px solid white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div class="left-panel">
+            <div class="controls-container" id="controlsContainer">
+                <div class="controls-header">
+                    <span class="controls-title">Controles de Medición</span>
+                    <button class="toggle-controls-btn" onclick="toggleControls()">Ocultar</button>
+                </div>
+                <div class="controls-content">
+                    <div class="control-row">
+                        <div class="control-item">
+                            <label>QDU:</label>
+                            <input type="number" id="qduInput" placeholder="5" min="1" max="999">
+                        </div>
+                        <div class="control-item">
+                            <label>DP/Zona:</label>
+                            <select id="dpSelect">
+                                <option value="">Seleccionar</option>
+                            </select>
+                        </div>
+                        <div class="control-item">
+                            <label>Nuevo DP:</label>
+                            <input type="number" id="newDpInput" placeholder="20" min="1" max="999">
+                        </div>
+                        <div class="control-item">
+                            <button class="btn btn-warning btn-sm" onclick="addNewDP()">+ DP</button>
+                        </div>
+                    </div>
+                    <div class="control-row">
+                        <div class="control-item">
+                            <label>Tipo:</label>
+                            <select id="typeSelect">
+                                <option value="tipo1">Tipo 1</option>
+                                <option value="tipo2">Tipo 2</option>
+                                <option value="tipo3">Tipo 3</option>
+                                <option value="tipo4">Tipo 4</option>
+                                <option value="tipo5">Tipo 5</option>
+                            </select>
+                        </div>
+                        <div class="control-item">
+                            <label>Equipo:</label>
+                            <select id="teamSelect">
+                                <option value="equipo1">Equipo 1</option>
+                                <option value="equipo2">Equipo 2</option>
+                                <option value="equipo3">Equipo 3</option>
+                            </select>
+                        </div>
+                        <div class="control-item">
+                            <label>Metros:</label>
+                            <input type="number" id="manualMeters" placeholder="0.0" step="0.1">
+                        </div>
+                    </div>
+                    <div class="control-row">
+                        <div class="btn-group" style="width: 100%;">
+                            <button class="btn btn-success" onclick="addPointFromCrosshair()">+ Punto</button>
+                            <button class="btn btn-primary" onclick="finishCurrentMeasurement()">Finalizar</button>
+                            <button class="btn btn-danger" onclick="cancelCurrentMeasurement()">Cancelar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="map-wrapper">
+                <div id="map">
+                    <div class="crosshair">
+                        <div class="crosshair-center"></div>
+                    </div>
+                    <div class="map-controls">
+                        <button class="map-control-btn" id="satelliteToggle" title="Vista Satélite">🛰️</button>
+                        <button class="map-control-btn edit-mode-btn" id="editModeToggle" title="Editar líneas" onclick="toggleEditMode()">✏️ Editar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="data-container" id="dataContainer">
+            <div class="data-header" onclick="toggleDataPanel()">
+                <span class="data-toggle-icon">▼</span>
+                <span>Datos y Resumen</span>
+            </div>
+            
+            <div class="panel-tabs">
+                <button class="tab active" onclick="switchTab('measurements')">Mediciones</button>
+                <button class="tab" onclick="switchTab('summary')">Resumen</button>
+                <button class="tab" onclick="switchTab('matrix')">Matriz</button>
+                <button class="tab" onclick="switchTab('report')">Informe</button>
+            </div>
+            
+            <div class="panel-content active" id="measurements-content">
+                <div id="measurementsByDP"></div>
+            </div>
+            
+            <div class="panel-content" id="summary-content">
+                <div id="summaryContent"></div>
+            </div>
+            
+            <div class="panel-content" id="matrix-content">
+                <h3 style="margin-top: 0;">Resumen por DP y Tipo</h3>
+                <div class="matrix-wrapper">
+                    <table class="matrix-table" id="matrixTable"></table>
+                </div>
+            </div>
+            
+            <div class="panel-content" id="report-content">
+                <div style="margin-bottom: 15px;">
+                    <select id="filterDP" onchange="applyFilters()" style="width: 48%; margin-right: 2%;">
+                        <option value="">Todos los DPs</option>
+                    </select>
+                    <select id="filterType" onchange="applyFilters()" style="width: 48%;">
+                        <option value="">Todos los tipos</option>
+                        <option value="tipo1">Tipo 1</option>
+                        <option value="tipo2">Tipo 2</option>
+                        <option value="tipo3">Tipo 3</option>
+                        <option value="tipo4">Tipo 4</option>
+                        <option value="tipo5">Tipo 5</option>
+                    </select>
+                </div>
+                <div id="reportContentTab"></div>
+            </div>
+        </div>
+        
+        <div class="mobile-toggle-data" onclick="toggleDataPanel()">
+            📊 Ver Datos
+        </div>
+    </div>
+
+    <script>
+        // Variables globales
+        let map;
+        let streetLayer;
+        let satelliteLayer;
+        let currentLayer = 'street';
+        let measurements = [];
+        let measurementIdCounter = 1;
+        let dpList = [];
+        let editMode = false;
+        let currentMeasurement = {
+            points: [],
+            markers: [],
+            polyline: null,
+            type: 'tipo1',
+            team: 'equipo1',
+            manualDistance: 0,
+            calculatedDistance: 0,
+            distanceLabel: null,
+            dp: null,
+            previewLine: null
+        };
+        
+        // Colores para cada tipo
+        const typeColors = {
+            tipo1: '#ff4444',
+            tipo2: '#44ff44',
+            tipo3: '#4444ff',
+            tipo4: '#ff44ff',
+            tipo5: '#ffaa44'
+        };
+        
+        // Nombres
+        const typeNames = {
+            tipo1: 'Tipo 1',
+            tipo2: 'Tipo 2',
+            tipo3: 'Tipo 3',
+            tipo4: 'Tipo 4',
+            tipo5: 'Tipo 5'
+        };
+        
+        const teamNames = {
+            equipo1: 'Equipo 1',
+            equipo2: 'Equipo 2',
+            equipo3: 'Equipo 3'
+        };
+        
+        // Inicialización
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeMap();
+            loadSavedData();
+            setupEventListeners();
+            loadCurrentMeasurement();
+            
+            // Auto-guardar cada 5 segundos
+            setInterval(saveCurrentMeasurement, 5000);
+            
+            // Ajustar altura en móviles
+            adjustMobileHeight();
+            window.addEventListener('resize', adjustMobileHeight);
+            window.addEventListener('orientationchange', function() {
+                setTimeout(adjustMobileHeight, 100);
+            });
+        });
+        
+        function adjustMobileHeight() {
+            if (window.innerWidth < 768) {
+                const vh = window.innerHeight;
+                document.documentElement.style.setProperty('--vh', `${vh}px`);
+                
+                // Asegurar que el mapa tenga la altura correcta
+                const controlsHeight = document.querySelector('.controls-container').offsetHeight;
+                const dataHeight = document.querySelector('.data-container').offsetHeight;
+                const mapWrapper = document.querySelector('.map-wrapper');
+                
+                if (mapWrapper) {
+                    const availableHeight = vh - controlsHeight - (document.querySelector('.data-container').classList.contains('collapsed') ? 48 : dataHeight);
+                    mapWrapper.style.height = availableHeight + 'px';
+                }
+                
+                // Forzar redimensionamiento del mapa
+                if (map) {
+                    setTimeout(() => {
+                        map.invalidateSize();
+                    }, 300);
+                }
+            }
+        }
+        
+        function initializeMap() {
+            map = L.map('map', {
+                center: [51.344950, 8.285313],
+                zoom: 16,
+                zoomControl: true
+            });
+            
+            streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap',
+                maxZoom: 22,
+                maxNativeZoom: 19
+            });
+            
+            satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                attribution: '© Esri',
+                maxZoom: 22,
+                maxNativeZoom: 19
+            });
+            
+            streetLayer.addTo(map);
+            
+            // Actualizar línea de preview cuando se mueve el mapa
+            map.on('move', updatePreviewLine);
+        }
+        
+        function setupEventListeners() {
+            document.getElementById('satelliteToggle').addEventListener('click', toggleSatellite);
+            document.getElementById('typeSelect').addEventListener('change', function() {
+                currentMeasurement.type = this.value;
+                updateCurrentPolyline();
+            });
+            document.getElementById('teamSelect').addEventListener('change', function() {
+                currentMeasurement.team = this.value;
+                localStorage.setItem('lastTeam', this.value);
+            });
+            document.getElementById('dpSelect').addEventListener('change', function() {
+                localStorage.setItem('lastDP', this.value);
+                showDPMeasurements(this.value);
+            });
+            
+            // Atajos de teclado
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && !e.target.matches('input')) {
+                    addPointFromCrosshair();
+                } else if (e.key === 'Escape') {
+                    cancelCurrentMeasurement();
+                }
+            });
+        }
+        
+        // Funciones globales para botones
+        window.toggleEditMode = function() {
+            editMode = !editMode;
+            const btn = document.getElementById('editModeToggle');
+            
+            if (editMode) {
+                btn.classList.add('active');
+                btn.innerHTML = '✏️ Editando';
+                enableLineEditing();
+            } else {
+                btn.classList.remove('active');
+                btn.innerHTML = '✏️ Editar';
+                disableLineEditing();
+            }
+        }
+        
+        function enableLineEditing() {
+            measurements.forEach(measurement => {
+                // Hacer los marcadores arrastrables
+                measurement.markers.forEach((marker, index) => {
+                    marker.setOpacity(1);
+                    marker.dragging.enable();
+                    
+                    // Remover eventos anteriores
+                    marker.off('drag');
+                    marker.off('dragend');
+                    
+                    // Agregar evento de arrastre
+                    marker.on('drag', function(e) {
+                        updateMeasurementLine(measurement);
+                    });
+                    
+                    marker.on('dragend', function(e) {
+                        // Actualizar puntos
+                        measurement.points = measurement.markers.map(m => m.getLatLng());
+                        
+                        // Recalcular distancia
+                        let totalDistance = 0;
+                        for (let i = 0; i < measurement.points.length - 1; i++) {
+                            totalDistance += measurement.points[i].distanceTo(measurement.points[i + 1]);
+                        }
+                        measurement.calculatedDistance = totalDistance;
+                        
+                        // Actualizar etiqueta
+                        if (measurement.distanceLabel) {
+                            map.removeLayer(measurement.distanceLabel);
+                            measurement.distanceLabel = createDistanceLabel(
+                                measurement.polyline,
+                                measurement.manualDistance,
+                                measurement.type,
+                                measurement.dp,
+                                document.getElementById('dpSelect').value === ''
+                            );
+                        }
+                        
+                        // Guardar cambios
+                        saveMeasurements();
+                        updateTables();
+                    });
+                });
+            });
+        }
+        
+        function disableLineEditing() {
+            measurements.forEach(measurement => {
+                // Deshabilitar arrastre en los marcadores
+                measurement.markers.forEach(marker => {
+                    marker.dragging.disable();
+                    marker.off('drag');
+                    marker.off('dragend');
+                    
+                    // Ocultar marcadores si no está seleccionado el DP
+                    const selectedDP = document.getElementById('dpSelect').value;
+                    if (selectedDP && measurement.dp !== selectedDP) {
+                        marker.setOpacity(0);
+                    }
+                });
+            });
+        }
+        
+        function updateMeasurementLine(measurement) {
+            // Actualizar puntos desde los marcadores
+            const newPoints = measurement.markers.map(marker => marker.getLatLng());
+            
+            // Actualizar polilínea
+            if (measurement.polyline) {
+                measurement.polyline.setLatLngs(newPoints);
+            }
+        }
+        
+        window.toggleDataPanel = function() {
+            const container = document.getElementById('dataContainer');
+            const mobileToggle = document.querySelector('.mobile-toggle-data');
+            
+            container.classList.toggle('collapsed');
+            
+            // Actualizar texto del botón móvil
+            if (window.innerWidth <= 768 && mobileToggle) {
+                if (container.classList.contains('collapsed')) {
+                    mobileToggle.innerHTML = '📊 Ver Datos';
+                } else {
+                    mobileToggle.innerHTML = '🔽 Ocultar';
+                }
+            }
+        }
+        
+        window.switchTab = function(tabName) {
+            // Actualizar tabs
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.panel-content').forEach(content => content.classList.remove('active'));
+            
+            // Activar tab seleccionado
+            event.target.classList.add('active');
+            document.getElementById(tabName + '-content').classList.add('active');
+            
+            // Actualizar contenido si es necesario
+            if (tabName === 'matrix') {
+                updateMatrixTable();
+            } else if (tabName === 'report') {
+                applyFilters();
+            }
+        }
+        
+        function toggleSatellite() {
+            const btn = document.getElementById('satelliteToggle');
+            if (currentLayer === 'street') {
+                map.removeLayer(streetLayer);
+                satelliteLayer.addTo(map);
+                currentLayer = 'satellite';
+                btn.classList.add('active');
+            } else {
+                map.removeLayer(satelliteLayer);
+                streetLayer.addTo(map);
+                currentLayer = 'street';
+                btn.classList.remove('active');
+            }
+        }
+        
+        // Funciones de medición
+        function createCustomIcon() {
+            return L.divIcon({
+                className: 'custom-marker',
+                iconSize: [20, 20],
+                iconAnchor: [10, 10]
+            });
+        }
+        
+        window.addPointFromCrosshair = function() {
+            const center = map.getCenter();
+            addPoint(center);
+        }
+        
+        function addPoint(latlng) {
+            const marker = L.marker(latlng, {
+                draggable: !editMode, // Solo arrastrable si no estamos en modo edición
+                icon: createCustomIcon()
+            }).addTo(map);
+            
+            marker.on('drag', function() {
+                updateMeasurement();
+            });
+            
+            currentMeasurement.points.push(latlng);
+            currentMeasurement.markers.push(marker);
+            
+            updateMeasurement();
+            saveCurrentMeasurement();
+        }
+        
+        function updateMeasurement() {
+            currentMeasurement.points = currentMeasurement.markers.map(marker => marker.getLatLng());
+            
+            if (currentMeasurement.points.length > 1) {
+                updateCurrentPolyline();
+                calculateDistance();
+            }
+            
+            updatePreviewLine();
+        }
+        
+        function updatePreviewLine() {
+            if (currentMeasurement.previewLine) {
+                map.removeLayer(currentMeasurement.previewLine);
+                currentMeasurement.previewLine = null;
+            }
+            
+            if (currentMeasurement.points.length > 0) {
+                const center = map.getCenter();
+                const lastPoint = currentMeasurement.points[currentMeasurement.points.length - 1];
+                
+                currentMeasurement.previewLine = L.polyline([lastPoint, center], {
+                    color: typeColors[currentMeasurement.type],
+                    weight: 3,
+                    opacity: 0.5,
+                    dashArray: '5, 10'
+                }).addTo(map);
+            }
+        }
+        
+        function updateCurrentPolyline() {
+            if (currentMeasurement.polyline) {
+                map.removeLayer(currentMeasurement.polyline);
+            }
+            
+            if (currentMeasurement.points.length > 1) {
+                currentMeasurement.polyline = L.polyline(currentMeasurement.points, {
+                    color: typeColors[currentMeasurement.type],
+                    weight: 4,
+                    opacity: 0.8
+                }).addTo(map);
+            }
+        }
+        
+        function calculateDistance() {
+            let totalDistance = 0;
+            for (let i = 0; i < currentMeasurement.points.length - 1; i++) {
+                totalDistance += currentMeasurement.points[i].distanceTo(currentMeasurement.points[i + 1]);
+            }
+            currentMeasurement.calculatedDistance = totalDistance;
+        }
+        
+        function createDistanceLabel(polyline, distance, type, dp, showDP = false) {
+            const points = polyline.getLatLngs();
+            const midIndex = Math.floor(points.length / 2);
+            let labelPosition;
+            
+            if (points.length === 2) {
+                labelPosition = L.latLng(
+                    (points[0].lat + points[1].lat) / 2,
+                    (points[0].lng + points[1].lng) / 2
+                );
+            } else {
+                labelPosition = points[midIndex];
+            }
+            
+            // Desplazar ligeramente
+            const offset = 0.0001;
+            labelPosition = L.latLng(
+                labelPosition.lat + offset,
+                labelPosition.lng + offset
+            );
+            
+            let labelText = `${distance.toFixed(1)} m`;
+            if (showDP) {
+                labelText += `<br><small>${dp}</small>`;
+            }
+            
+            const label = L.divIcon({
+                className: 'distance-label',
+                html: `<div style="border-color: ${typeColors[type]}; color: ${typeColors[type]}">${labelText}</div>`,
+                iconSize: [80, showDP ? 40 : 30],
+                iconAnchor: [40, showDP ? 20 : 15]
+            });
+            
+            return L.marker(labelPosition, {
+                icon: label,
+                interactive: false
+            }).addTo(map);
+        }
+        
+        window.finishCurrentMeasurement = function() {
+            if (currentMeasurement.points.length < 2) {
+                alert('Necesitas al menos 2 puntos para crear una medición');
+                return;
+            }
+            
+            const manualInput = document.getElementById('manualMeters');
+            const manualDistance = parseFloat(manualInput.value);
+            
+            if (!manualDistance || manualDistance <= 0) {
+                alert('Por favor, ingresa la longitud de la medición');
+                manualInput.focus();
+                return;
+            }
+            
+            const qduNum = parseInt(document.getElementById('qduInput').value);
+            const dp = document.getElementById('dpSelect').value;
+            
+            if (!qduNum || qduNum <= 0) {
+                alert('Por favor, ingresa el número de QDU');
+                document.getElementById('qduInput').focus();
+                return;
+            }
+            
+            if (!dp) {
+                alert('Por favor, selecciona o crea un DP/Zona');
+                return;
+            }
+            
+            // Formatear QDU y DP
+            const qduFormatted = 'QDU-' + String(qduNum).padStart(3, '0');
+            const dpFormatted = dp;
+            
+            // Generar ID
+            const measurementId = `AT_${qduFormatted}-${String(measurementIdCounter).padStart(3, '0')}_${dpFormatted}`;
+            
+            // Crear etiqueta de distancia
+            const showDP = document.getElementById('dpSelect').value === '';
+            const distanceLabel = createDistanceLabel(
+                currentMeasurement.polyline, 
+                manualDistance, 
+                currentMeasurement.type,
+                dp,
+                showDP
+            );
+            
+            // Guardar la medición
+            const measurement = {
+                id: measurementId,
+                counter: measurementIdCounter++,
+                type: currentMeasurement.type,
+                team: currentMeasurement.team,
+                dp: dpFormatted,
+                qdu: qduFormatted,
+                manualDistance: manualDistance,
+                calculatedDistance: currentMeasurement.calculatedDistance,
+                points: [...currentMeasurement.points],
+                polyline: currentMeasurement.polyline,
+                markers: currentMeasurement.markers,
+                distanceLabel: distanceLabel
+            };
+            
+            measurements.push(measurement);
+            saveMeasurements();
+            
+            // Limpiar preview
+            if (currentMeasurement.previewLine) {
+                map.removeLayer(currentMeasurement.previewLine);
+                currentMeasurement.previewLine = null;
+            }
+            
+            // Actualizar interfaz
+            updateTables();
+            updateSummaries();
+            updateMatrixTable();
+            
+            // Resetear medición actual
+            resetCurrentMeasurement();
+            manualInput.value = '';
+            
+            // Limpiar medición guardada
+            localStorage.removeItem('currentMeasurement');
+        }
+        
+        window.cancelCurrentMeasurement = function() {
+            // Eliminar elementos del mapa
+            currentMeasurement.markers.forEach(marker => map.removeLayer(marker));
+            if (currentMeasurement.polyline) {
+                map.removeLayer(currentMeasurement.polyline);
+            }
+            if (currentMeasurement.distanceLabel) {
+                map.removeLayer(currentMeasurement.distanceLabel);
+            }
+            if (currentMeasurement.previewLine) {
+                map.removeLayer(currentMeasurement.previewLine);
+            }
+            
+            resetCurrentMeasurement();
+            document.getElementById('manualMeters').value = '';
+            localStorage.removeItem('currentMeasurement');
+        }
+        
+        function resetCurrentMeasurement() {
+            currentMeasurement = {
+                points: [],
+                markers: [],
+                polyline: null,
+                type: document.getElementById('typeSelect').value,
+                team: document.getElementById('teamSelect').value,
+                manualDistance: 0,
+                calculatedDistance: 0,
+                distanceLabel: null,
+                dp: document.getElementById('dpSelect').value,
+                previewLine: null
+            };
+        }
+        
+        window.addNewDP = function() {
+            const newDpInput = document.getElementById('newDpInput');
+            const dpNum = parseInt(newDpInput.value);
+            
+            if (!dpNum || dpNum <= 0) {
+                alert('Por favor, ingresa un número de DP válido');
+                return;
+            }
+            
+            const dp = 'DP' + String(dpNum).padStart(3, '0');
+            
+            if (dpList.includes(dp)) {
+                alert('Este DP ya existe');
+                return;
+            }
+            
+            dpList.push(dp);
+            updateDPSelect();
+            document.getElementById('dpSelect').value = dp;
+            localStorage.setItem('lastDP', dp);
+            localStorage.setItem('dpList', JSON.stringify(dpList));
+            newDpInput.value = '';
+            showDPMeasurements(dp);
+        }
+        
+        function updateDPSelect() {
+            const dpSelect = document.getElementById('dpSelect');
+            const filterDP = document.getElementById('filterDP');
+            const currentValue = dpSelect.value;
+            
+            dpSelect.innerHTML = '<option value="">Todos los DPs</option>';
+            filterDP.innerHTML = '<option value="">Todos los DPs</option>';
+            
+            dpList.forEach(dp => {
+                const option = document.createElement('option');
+                option.value = dp;
+                option.textContent = dp;
+                dpSelect.appendChild(option);
+                
+                const filterOption = option.cloneNode(true);
+                filterDP.appendChild(filterOption);
+            });
+            
+            if (currentValue && dpList.includes(currentValue)) {
+                dpSelect.value = currentValue;
+            }
+        }
+        
+        function showDPMeasurements(dp) {
+            measurements.forEach(measurement => {
+                const show = !dp || measurement.dp === dp;
+                
+                if (measurement.polyline) {
+                    measurement.polyline.setStyle({ opacity: show ? 0.8 : 0 });
+                }
+                if (measurement.distanceLabel) {
+                    if (show) {
+                        measurement.distanceLabel.addTo(map);
+                    } else {
+                        map.removeLayer(measurement.distanceLabel);
+                    }
+                }
+                measurement.markers.forEach(marker => {
+                    marker.setOpacity(show ? 1 : 0);
+                });
+            });
+            
+            updateTables();
+        }
+        
+        function updateTables() {
+            const container = document.getElementById('measurementsByDP');
+            container.innerHTML = '';
+            
+            const selectedDP = document.getElementById('dpSelect').value;
+            const filteredMeasurements = selectedDP 
+                ? measurements.filter(m => m.dp === selectedDP)
+                : measurements;
+            
+            // Agrupar por DP
+            const measurementsByDP = {};
+            filteredMeasurements.forEach(measurement => {
+                if (!measurementsByDP[measurement.dp]) {
+                    measurementsByDP[measurement.dp] = [];
+                }
+                measurementsByDP[measurement.dp].push(measurement);
+            });
+            
+            // Ordenar DPs
+            const sortedDPs = Object.keys(measurementsByDP).sort((a, b) => {
+                const numA = parseInt(a.replace(/\D/g, '')) || 0;
+                const numB = parseInt(b.replace(/\D/g, '')) || 0;
+                return numA - numB;
+            });
+            
+            // Crear tabla para cada DP
+            sortedDPs.forEach(dp => {
+                const dpSection = document.createElement('div');
+                dpSection.className = 'dp-section';
+                
+                const dpTotal = measurementsByDP[dp].reduce((sum, m) => sum + m.manualDistance, 0);
+                
+                const tableHTML = `
+                    <div class="dp-header">
+                        <span>${dp}</span>
+                        <span>Total: ${dpTotal.toFixed(2)} m</span>
+                    </div>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Tipo</th>
+                                    <th>Equipo</th>
+                                    <th>Manual</th>
+                                    <th>Calc.</th>
+                                    <th>Acc.</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${measurementsByDP[dp].map(m => `
+                                    <tr>
+                                        <td style="font-size: 10px; word-break: break-all;">${m.id}</td>
+                                        <td><span class="editable type-${m.type.replace('tipo', '')}" onclick="editField(${m.counter}, 'type', '${m.type}')">● ${typeNames[m.type]}</span></td>
+                                        <td><span class="editable" onclick="editField(${m.counter}, 'team', '${m.team}')">${teamNames[m.team]}</span></td>
+                                        <td><span class="editable" onclick="editField(${m.counter}, 'distance', ${m.manualDistance})">${m.manualDistance.toFixed(2)}</span></td>
+                                        <td>${m.calculatedDistance.toFixed(2)}</td>
+                                        <td><button class="btn btn-danger btn-sm" onclick="deleteMeasurement(${m.counter})">×</button></td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+                
+                dpSection.innerHTML = tableHTML;
+                container.appendChild(dpSection);
+            });
+            
+            updateSummaries();
+        }
+        
+        window.editField = function(id, field, currentValue) {
+            const measurement = measurements.find(m => m.counter === id);
+            if (!measurement) return;
+            
+            let newValue;
+            
+            switch(field) {
+                case 'type':
+                    const types = ['tipo1', 'tipo2', 'tipo3', 'tipo4', 'tipo5'];
+                    const typeIndex = types.indexOf(currentValue);
+                    const selectedType = prompt('Selecciona tipo (1-5):', (typeIndex + 1).toString());
+                    if (selectedType && selectedType >= 1 && selectedType <= 5) {
+                        newValue = types[selectedType - 1];
+                        measurement.type = newValue;
+                        // Actualizar color de la línea
+                        if (measurement.polyline) {
+                            measurement.polyline.setStyle({ color: typeColors[newValue] });
+                        }
+                        // Actualizar etiqueta
+                        if (measurement.distanceLabel) {
+                            map.removeLayer(measurement.distanceLabel);
+                            measurement.distanceLabel = createDistanceLabel(
+                                measurement.polyline,
+                                measurement.manualDistance,
+                                newValue,
+                                measurement.dp,
+                                document.getElementById('dpSelect').value === ''
+                            );
+                        }
+                    }
+                    break;
+                    
+                case 'team':
+                    const teamNum = prompt('Número de equipo (1-3):', currentValue.replace('equipo', ''));
+                    if (teamNum && teamNum >= 1 && teamNum <= 3) {
+                        newValue = 'equipo' + teamNum;
+                        measurement.team = newValue;
+                    }
+                    break;
+                    
+                case 'distance':
+                    const distance = prompt('Nueva distancia (metros):', currentValue);
+                    if (distance && !isNaN(distance) && parseFloat(distance) > 0) {
+                        newValue = parseFloat(distance);
+                        measurement.manualDistance = newValue;
+                        // Actualizar etiqueta
+                        if (measurement.distanceLabel) {
+                            map.removeLayer(measurement.distanceLabel);
+                            measurement.distanceLabel = createDistanceLabel(
+                                measurement.polyline,
+                                newValue,
+                                measurement.type,
+                                measurement.dp,
+                                document.getElementById('dpSelect').value === ''
+                            );
+                        }
+                    }
+                    break;
+            }
+            
+            if (newValue !== undefined) {
+                saveMeasurements();
+                updateTables();
+                updateMatrixTable();
+            }
+        }
+        
+        window.deleteMeasurement = function(id) {
+            if (!confirm('¿Estás seguro de eliminar esta medición?')) return;
+            
+            const index = measurements.findIndex(m => m.counter === id);
+            if (index !== -1) {
+                const measurement = measurements[index];
+                
+                // Eliminar del mapa
+                measurement.markers.forEach(marker => map.removeLayer(marker));
+                if (measurement.polyline) map.removeLayer(measurement.polyline);
+                if (measurement.distanceLabel) map.removeLayer(measurement.distanceLabel);
+                
+                // Eliminar del array
+                measurements.splice(index, 1);
+                
+                saveMeasurements();
+                updateTables();
+                updateMatrixTable();
+            }
+        }
+        
+        function updateSummaries() {
+            const summaryContent = document.getElementById('summaryContent');
+            
+            // Calcular totales por tipo
+            const totalsByType = {
+                tipo1: 0,
+                tipo2: 0,
+                tipo3: 0,
+                tipo4: 0,
+                tipo5: 0
+            };
+            
+            measurements.forEach(m => {
+                totalsByType[m.type] += m.manualDistance;
+            });
+            
+            const totalGeneral = Object.values(totalsByType).reduce((sum, val) => sum + val, 0);
+            
+            const summaryHTML = `
+                <h3 style="margin-top: 0;">Resumen Total por Tipo</h3>
+                <div class="summary-grid">
+                    ${Object.keys(totalsByType).map(type => `
+                        <div class="summary-item ${type}">
+                            <div class="summary-label">${typeNames[type]}</div>
+                            <div class="summary-value">${totalsByType[type].toFixed(2)} m</div>
+                        </div>
+                    `).join('')}
+                </div>
+                <div style="text-align: center; padding: 20px; background: #333; color: white; border-radius: 5px; margin-top: 20px;">
+                    <div style="font-size: 14px;">TOTAL GENERAL</div>
+                    <div style="font-size: 28px; font-weight: bold;">${totalGeneral.toFixed(2)} m</div>
+                </div>
+            `;
+            
+            summaryContent.innerHTML = summaryHTML;
+        }
+        
+        function updateMatrixTable() {
+            const matrixTable = document.getElementById('matrixTable');
+            
+            // Crear estructura de datos
+            const matrix = {};
+            const allDPs = [...new Set(measurements.map(m => m.dp))].sort((a, b) => {
+                const numA = parseInt(a.replace(/\D/g, '')) || 0;
+                const numB = parseInt(b.replace(/\D/g, '')) || 0;
+                return numA - numB;
+            });
+            
+            if (allDPs.length === 0) {
+                matrixTable.innerHTML = '<tr><td style="text-align: center; padding: 20px;">No hay mediciones registradas</td></tr>';
+                return;
+            }
+            
+            allDPs.forEach(dp => {
+                matrix[dp] = {
+                    tipo1: 0,
+                    tipo2: 0,
+                    tipo3: 0,
+                    tipo4: 0,
+                    tipo5: 0
+                };
+            });
+            
+            measurements.forEach(m => {
+                matrix[m.dp][m.type] += m.manualDistance;
+            });
+            
+            // Calcular totales
+            const columnTotals = {
+                tipo1: 0,
+                tipo2: 0,
+                tipo3: 0,
+                tipo4: 0,
+                tipo5: 0
+            };
+            
+            Object.values(matrix).forEach(dpData => {
+                Object.keys(dpData).forEach(type => {
+                    columnTotals[type] += dpData[type];
+                });
+            });
+            
+            // Generar tabla HTML
+            let tableHTML = `
+                <thead>
+                    <tr>
+                        <th class="row-header">DP/Zona</th>
+                        <th style="background: ${typeColors.tipo1}; color: white;">Tipo 1</th>
+                        <th style="background: ${typeColors.tipo2}; color: black;">Tipo 2</th>
+                        <th style="background: ${typeColors.tipo3}; color: white;">Tipo 3</th>
+                        <th style="background: ${typeColors.tipo4}; color: white;">Tipo 4</th>
+                        <th style="background: ${typeColors.tipo5}; color: black;">Tipo 5</th>
+                        <th>Total DP</th>
+                    </tr>
+                </thead>
+                <tbody>
+            `;
+            
+            allDPs.forEach(dp => {
+                const rowTotal = Object.values(matrix[dp]).reduce((sum, val) => sum + val, 0);
+                tableHTML += `
+                    <tr>
+                        <td class="row-header">${dp}</td>
+                        ${Object.keys(matrix[dp]).map(type => {
+                            const value = matrix[dp][type];
+                            const cellClass = value > 0 ? '' : 'empty-cell';
+                            const cellValue = value > 0 ? value.toFixed(2) : '-';
+                            return `<td class="${cellClass}">${cellValue}</td>`;
+                        }).join('')}
+                        <td style="font-weight: bold; background: rgba(52,58,64,0.1);">${rowTotal.toFixed(2)}</td>
+                    </tr>
+                `;
+            });
+            
+            // Fila de totales
+            const grandTotal = Object.values(columnTotals).reduce((sum, val) => sum + val, 0);
+            tableHTML += `
+                <tr class="total-row">
+                    <td class="total-cell">TOTAL</td>
+                    ${Object.keys(columnTotals).map(type => `
+                        <td style="font-weight: bold;">${columnTotals[type].toFixed(2)}</td>
+                    `).join('')}
+                    <td class="total-cell">${grandTotal.toFixed(2)}</td>
+                </tr>
+            </tbody>
+            `;
+            
+            matrixTable.innerHTML = tableHTML;
+        }
+        
+        window.applyFilters = function() {
+            const filterDP = document.getElementById('filterDP').value;
+            const filterType = document.getElementById('filterType').value;
+            
+            let filtered = [...measurements];
+            
+            // Aplicar filtros
+            if (filterDP) {
+                filtered = filtered.filter(m => m.dp === filterDP);
+            }
+            if (filterType) {
+                filtered = filtered.filter(m => m.type === filterType);
+            }
+            
+            // Generar reporte
+            const reportContent = document.getElementById('reportContentTab');
+            const date = new Date().toLocaleDateString('es-ES');
+            const totalFiltered = filtered.reduce((sum, m) => sum + m.manualDistance, 0);
+            
+            let html = `
+                <div style="margin-bottom: 15px;">
+                    <strong>Fecha:</strong> ${date} | <strong>Total:</strong> ${filtered.length} mediciones | ${totalFiltered.toFixed(2)} m
+                </div>
+                
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>DP</th>
+                                <th>Tipo</th>
+                                <th>Equipo</th>
+                                <th>Manual</th>
+                                <th>Calc.</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${filtered.map(m => `
+                                <tr>
+                                    <td style="font-size: 10px;">${m.id}</td>
+                                    <td>${m.dp}</td>
+                                    <td class="type-${m.type.replace('tipo', '')}">● ${typeNames[m.type]}</td>
+                                    <td>${teamNames[m.team]}</td>
+                                    <td style="text-align: right;">${m.manualDistance.toFixed(2)}</td>
+                                    <td style="text-align: right;">${m.calculatedDistance.toFixed(2)}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                        <tfoot>
+                            <tr style="font-weight: bold; background: #f0f0f0;">
+                                <td colspan="4">TOTAL</td>
+                                <td style="text-align: right;">${totalFiltered.toFixed(2)}</td>
+                                <td style="text-align: right;">${filtered.reduce((sum, m) => sum + m.calculatedDistance, 0).toFixed(2)}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            `;
+            
+            reportContent.innerHTML = html;
+        }
+        
+        // Guardar y cargar datos
+        function saveCurrentMeasurement() {
+            if (currentMeasurement.points.length > 0) {
+                const data = {
+                    points: currentMeasurement.points.map(p => ({lat: p.lat, lng: p.lng})),
+                    type: currentMeasurement.type,
+                    team: currentMeasurement.team,
+                    dp: document.getElementById('dpSelect').value
+                };
+                localStorage.setItem('currentMeasurement', JSON.stringify(data));
+            }
+        }
+        
+        function loadCurrentMeasurement() {
+            const saved = localStorage.getItem('currentMeasurement');
+            if (saved) {
+                try {
+                    const data = JSON.parse(saved);
+                    if (data.points && data.points.length > 0) {
+                        if (confirm('Hay una medición en progreso. ¿Deseas continuarla?')) {
+                            currentMeasurement.type = data.type;
+                            currentMeasurement.team = data.team;
+                            document.getElementById('typeSelect').value = data.type;
+                            document.getElementById('teamSelect').value = data.team;
+                            if (data.dp) {
+                                document.getElementById('dpSelect').value = data.dp;
+                            }
+                            
+                            data.points.forEach(p => {
+                                addPoint(L.latLng(p.lat, p.lng));
+                            });
+                        } else {
+                            localStorage.removeItem('currentMeasurement');
+                        }
+                    }
+                } catch (e) {
+                    console.error('Error loading saved measurement:', e);
+                }
+            }
+        }
+        
+        function saveMeasurements() {
+            const dataToSave = measurements.map(m => ({
+                id: m.id,
+                counter: m.counter,
+                type: m.type,
+                team: m.team,
+                dp: m.dp,
+                qdu: m.qdu,
+                manualDistance: m.manualDistance,
+                calculatedDistance: m.calculatedDistance,
+                points: m.points.map(p => ({lat: p.lat, lng: p.lng}))
+            }));
+            localStorage.setItem('measurements', JSON.stringify(dataToSave));
+        }
+        
+        function loadSavedData() {
+            // Cargar mediciones
+            const savedMeasurements = localStorage.getItem('measurements');
+            if (savedMeasurements) {
+                try {
+                    const loadedMeasurements = JSON.parse(savedMeasurements);
+                    measurements = [];
+                    measurementIdCounter = 1;
+                    
+                    loadedMeasurements.forEach(m => {
+                        // Recrear marcadores
+                        const markers = m.points.map(p => {
+                            const marker = L.marker(L.latLng(p.lat, p.lng), {
+                                draggable: false,
+                                icon: createCustomIcon()
+                            }).addTo(map);
+                            return marker;
+                        });
+                        
+                        // Recrear polilínea
+                        let polyline = null;
+                        if (m.points.length > 1) {
+                            polyline = L.polyline(m.points.map(p => L.latLng(p.lat, p.lng)), {
+                                color: typeColors[m.type],
+                                weight: 4,
+                                opacity: 0.8
+                            }).addTo(map);
+                        }
+                        
+                        // Recrear etiqueta
+                        let distanceLabel = null;
+                        if (polyline) {
+                            distanceLabel = createDistanceLabel(
+                                polyline,
+                                m.manualDistance,
+                                m.type,
+                                m.dp,
+                                false
+                            );
+                        }
+                        
+                        measurements.push({
+                            id: m.id,
+                            counter: m.counter,
+                            type: m.type,
+                            team: m.team,
+                            dp: m.dp,
+                            qdu: m.qdu,
+                            manualDistance: m.manualDistance,
+                            calculatedDistance: m.calculatedDistance,
+                            points: m.points.map(p => L.latLng(p.lat, p.lng)),
+                            polyline: polyline,
+                            markers: markers,
+                            distanceLabel: distanceLabel
+                        });
+                        
+                        measurementIdCounter = Math.max(measurementIdCounter, m.counter + 1);
+                    });
+                } catch (e) {
+                    console.error('Error loading measurements:', e);
+                }
+            }
+            
+            // Cargar lista de DPs
+            const savedDPList = localStorage.getItem('dpList');
+            if (savedDPList) {
+                dpList = JSON.parse(savedDPList);
+                updateDPSelect();
+            }
+            
+            // Cargar último DP
+            const savedDP = localStorage.getItem('lastDP');
+            if (savedDP && dpList.includes(savedDP)) {
+                document.getElementById('dpSelect').value = savedDP;
+            }
+            
+            // Cargar último equipo
+            const savedTeam = localStorage.getItem('lastTeam');
+            if (savedTeam) {
+                document.getElementById('teamSelect').value = savedTeam;
+            }
+            
+            updateTables();
+            updateMatrixTable();
+        }
+    </script>
+</body>
+</html>
